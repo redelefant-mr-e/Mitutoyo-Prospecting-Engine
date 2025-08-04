@@ -1,0 +1,512 @@
+import React, { useState, useCallback, useEffect } from 'react';
+import Papa from 'papaparse';
+import { analyzeCSVData } from './utils/csvAnalyzer';
+import { saveSessionData, loadSessionData, clearSessionData, generateRandomId, saveAuthenticationState, loadAuthenticationState } from './utils/sessionManager';
+import FileUpload from './components/FileUpload';
+import DataStats from './components/DataStats';
+import DataTable from './components/DataTable';
+import FileTabs from './components/FileTabs';
+import ColumnSelector from './components/ColumnSelector';
+import LoginScreen from './components/LoginScreen';
+import { Download, RefreshCw, Plus, LogOut } from 'lucide-react';
+import MitutoyoLogo from '../images/mitutoyo-m.svg';
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => loadAuthenticationState());
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [files, setFiles] = useState([]);
+  const [activeFileId, setActiveFileId] = useState(null);
+  const [hiddenColumns, setHiddenColumns] = useState({});
+  const [columnWidths, setColumnWidths] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Load session data on mount if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const sessionData = loadSessionData();
+      console.log('Loading session data:', sessionData);
+      if (sessionData.files.length > 0) {
+        setFiles(sessionData.files);
+        setActiveFileId(sessionData.activeFileId);
+        
+        // Clean up hidden columns and column widths to only include existing files
+        const fileIds = sessionData.files.map(f => f.id);
+        const cleanedHiddenColumns = {};
+        const cleanedColumnWidths = {};
+        
+        fileIds.forEach(fileId => {
+          if (sessionData.hiddenColumns[fileId]) {
+            cleanedHiddenColumns[fileId] = sessionData.hiddenColumns[fileId];
+          }
+          if (sessionData.columnWidths[fileId]) {
+            cleanedColumnWidths[fileId] = sessionData.columnWidths[fileId];
+          }
+        });
+        
+        setHiddenColumns(cleanedHiddenColumns);
+        setColumnWidths(cleanedColumnWidths);
+      }
+    }
+    setIsInitializing(false);
+  }, [isAuthenticated]);
+
+  // Save session data when it changes
+  useEffect(() => {
+    if (isAuthenticated && files.length > 0) {
+      console.log('Saving session data:', { files: files.length, activeFileId, hiddenColumns: Object.keys(hiddenColumns).length });
+      saveSessionData(files, activeFileId, hiddenColumns, columnWidths);
+    }
+  }, [files, activeFileId, hiddenColumns, columnWidths, isAuthenticated]);
+
+  // Save authentication state when it changes
+  useEffect(() => {
+    if (!isInitializing) {
+      saveAuthenticationState(isAuthenticated);
+    }
+  }, [isAuthenticated, isInitializing]);
+
+  const processCSVFile = useCallback(async (file) => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const text = await file.text();
+      
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.errors.length > 0) {
+            console.warn('CSV parsing warnings:', results.errors);
+          }
+
+          const data = results.data;
+          if (data.length === 0) {
+            setError('The CSV file appears to be empty or has no valid data');
+            setIsLoading(false);
+            return;
+          }
+
+          // Analyze the data structure
+          const dataAnalysis = analyzeCSVData(data);
+          
+          // Create new file entry
+          const newFile = {
+            id: Date.now().toString(),
+            name: file.name,
+            displayName: file.name.replace('.csv', ''),
+            data: data,
+            analysis: dataAnalysis
+          };
+
+          setFiles(prev => [...prev, newFile]);
+          setActiveFileId(newFile.id);
+          setHiddenColumns(prev => ({ ...prev, [newFile.id]: [] }));
+          setColumnWidths(prev => {
+            // Ensure we start with completely clean column widths for the new file
+            // This prevents any cross-contamination from other files
+            const newWidths = { ...prev };
+            newWidths[newFile.id] = {};
+            return newWidths;
+          });
+          setIsLoading(false);
+        },
+        error: (error) => {
+          setError(`Error parsing CSV: ${error.message}`);
+          setIsLoading(false);
+        }
+      });
+    } catch (error) {
+      setError(`Error reading file: ${error.message}`);
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleTabChange = (fileId) => {
+    setActiveFileId(fileId);
+  };
+
+  const handleTabClose = (fileId) => {
+    setFiles(prev => prev.filter(file => file.id !== fileId));
+    setHiddenColumns(prev => {
+      const newHidden = { ...prev };
+      delete newHidden[fileId];
+      return newHidden;
+    });
+    setColumnWidths(prev => {
+      const newWidths = { ...prev };
+      delete newWidths[fileId];
+      return newWidths;
+    });
+    
+    if (activeFileId === fileId) {
+      const remainingFiles = files.filter(file => file.id !== fileId);
+      if (remainingFiles.length > 0) {
+        setActiveFileId(remainingFiles[0].id);
+      } else {
+        setActiveFileId(null);
+      }
+    }
+  };
+
+  const handleTabRename = (fileId, newName) => {
+    setFiles(prev => prev.map(file => 
+      file.id === fileId ? { ...file, displayName: newName } : file
+    ));
+  };
+
+  const handleToggleColumn = (column) => {
+    if (!activeFileId) return;
+    
+    setHiddenColumns(prev => {
+      const currentHidden = prev[activeFileId] || [];
+      const newHidden = currentHidden.includes(column)
+        ? currentHidden.filter(col => col !== column)
+        : [...currentHidden, column];
+      
+      return { ...prev, [activeFileId]: newHidden };
+    });
+  };
+
+  const exportToCSV = () => {
+    const activeFile = files.find(f => f.id === activeFileId);
+    if (!activeFile) return;
+    
+    const csv = Papa.unparse(activeFile.data);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `processed_${activeFile.name}`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    // Don't clear the data immediately - let it persist for the session
+    setError('');
+  };
+
+  const handleColumnWidthChange = (columnName, newWidth) => {
+    if (!activeFileId) return;
+    
+    setColumnWidths(prev => {
+      const newWidths = {
+        ...prev,
+        [activeFileId]: {
+          ...prev[activeFileId],
+          [columnName]: newWidth
+        }
+      };
+      return newWidths;
+    });
+  };
+
+  const handleColumnRename = (oldName, newName) => {
+    const activeFile = files.find(f => f.id === activeFileId);
+    if (!activeFile) return;
+
+    // Update the analysis columns
+    const updatedAnalysis = {
+      ...activeFile.analysis,
+      columns: activeFile.analysis.columns.map(col => col === oldName ? newName : col),
+      jsonColumns: activeFile.analysis.jsonColumns.map(col => col === oldName ? newName : col)
+    };
+
+    // Update the data with new column names
+    const updatedData = activeFile.data.map(row => {
+      const newRow = {};
+      Object.keys(row).forEach(key => {
+        if (key === oldName) {
+          newRow[newName] = row[key];
+        } else {
+          newRow[key] = row[key];
+        }
+      });
+      return newRow;
+    });
+
+    // Update the file
+    setFiles(prev => prev.map(file => 
+      file.id === activeFileId 
+        ? { ...file, data: updatedData, analysis: updatedAnalysis }
+        : file
+    ));
+
+    // Update column widths
+    setColumnWidths(prev => {
+      const newWidths = { ...prev };
+      if (newWidths[activeFileId] && newWidths[activeFileId][oldName]) {
+        newWidths[activeFileId] = {
+          ...newWidths[activeFileId],
+          [newName]: newWidths[activeFileId][oldName]
+        };
+        delete newWidths[activeFileId][oldName];
+      }
+      return newWidths;
+    });
+
+    // Update hidden columns
+    setHiddenColumns(prev => {
+      const newHidden = { ...prev };
+      if (newHidden[activeFileId]) {
+        newHidden[activeFileId] = newHidden[activeFileId].map(col => 
+          col === oldName ? newName : col
+        );
+      }
+      return newHidden;
+    });
+  };
+
+  // Show loading state while initializing
+  if (isInitializing) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+          color: 'var(--gray-600)',
+          fontSize: 'var(--text-base)',
+          fontWeight: 'var(--font-medium)'
+        }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            border: '2px solid var(--gray-200)',
+            borderTop: '2px solid var(--primary-600)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={() => setIsAuthenticated(true)} />;
+  }
+
+  return (
+    <div style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%)'
+    }}>
+      {/* Header */}
+      <header style={{
+        background: 'white',
+        borderBottom: '1px solid var(--gray-200)',
+        padding: 'var(--space-6) 0',
+        boxShadow: 'var(--shadow-sm)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
+      }}>
+        <div className="container">
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-4)'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                background: 'white',
+                borderRadius: 'var(--radius-lg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: 'var(--shadow-md)',
+                border: '1px solid var(--gray-200)'
+              }}>
+                <img 
+                  src={MitutoyoLogo} 
+                  alt="Mitutoyo" 
+                  style={{
+                    width: '32px',
+                    height: '26px'
+                  }}
+                />
+              </div>
+              <div>
+                <h1 style={{
+                  fontSize: 'var(--text-2xl)',
+                  fontWeight: 'var(--font-bold)',
+                  margin: 0,
+                  color: 'var(--gray-900)',
+                  lineHeight: 1.2
+                }}>
+                  Mitutoyo Prospecting Engine
+                </h1>
+                <p style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--gray-600)',
+                  margin: 0,
+                  fontWeight: 'var(--font-medium)'
+                }}>
+                  Advanced Data Analysis Platform
+                </p>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <button
+                onClick={handleLogout}
+                className="btn btn-secondary"
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--font-medium)'
+                }}
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
+              <button
+                onClick={() => {
+                  clearSessionData();
+                  setFiles([]);
+                  setActiveFileId(null);
+                  setHiddenColumns({});
+                  setColumnWidths({});
+                  alert('All data cleared!');
+                }}
+                className="btn btn-danger"
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--font-medium)'
+                }}
+              >
+                Clear Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="container" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-8)' }}>
+        {files.length === 0 ? (
+          <div className="card animate-fade-in" style={{
+            padding: 'var(--space-12)',
+            textAlign: 'center',
+            maxWidth: '600px',
+            margin: '0 auto'
+          }}>
+            <FileUpload onFileSelect={processCSVFile} isLoading={isLoading} />
+          </div>
+        ) : (
+          <div className="animate-fade-in">
+            <FileTabs
+              files={files}
+              activeFileId={activeFileId}
+              onTabChange={handleTabChange}
+              onTabClose={handleTabClose}
+              onTabRename={handleTabRename}
+            />
+
+            {activeFileId && (
+              <>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginBottom: 'var(--space-6)',
+                  flexWrap: 'wrap',
+                  gap: 'var(--space-4)'
+                }}>
+                  <div>
+                    <h2 style={{ 
+                      fontSize: 'var(--text-xl)', 
+                      fontWeight: 'var(--font-bold)', 
+                      marginBottom: 'var(--space-1)',
+                      color: 'var(--gray-900)'
+                    }}>
+                      {files.find(f => f.id === activeFileId)?.displayName}
+                    </h2>
+                    <p style={{ 
+                      color: 'var(--gray-600)', 
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 'var(--font-medium)'
+                    }}>
+                      {files.find(f => f.id === activeFileId)?.data.length} rows loaded
+                    </p>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+                    <ColumnSelector
+                      columns={files.find(f => f.id === activeFileId)?.analysis?.columns || []}
+                      hiddenColumns={hiddenColumns[activeFileId] || []}
+                      onToggleColumn={handleToggleColumn}
+                      analysis={files.find(f => f.id === activeFileId)?.analysis}
+                    />
+                    <button className="btn btn-primary" onClick={exportToCSV}>
+                      <Download size={16} />
+                      Export CSV
+                    </button>
+                    <button className="btn" onClick={() => document.getElementById('file-input')?.click()}>
+                      <Plus size={16} />
+                      Add File
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="error">
+                    {error}
+                  </div>
+                )}
+
+                <DataStats analysis={files.find(f => f.id === activeFileId)?.analysis} />
+                
+                <div className="card" style={{ 
+                  marginTop: 'var(--space-6)',
+                  padding: 'var(--space-6)'
+                }}>
+                  <DataTable 
+                    data={files.find(f => f.id === activeFileId)?.data} 
+                    analysis={files.find(f => f.id === activeFileId)?.analysis}
+                    hiddenColumns={hiddenColumns[activeFileId] || []}
+                    columnWidths={columnWidths[activeFileId] || {}}
+                    onColumnWidthChange={handleColumnWidthChange}
+                    onColumnRename={handleColumnRename}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Hidden file input for adding more files */}
+        <input
+          id="file-input"
+          type="file"
+          accept=".csv"
+          onChange={(e) => {
+            if (e.target.files[0]) {
+              processCSVFile(e.target.files[0]);
+              e.target.value = '';
+            }
+          }}
+          style={{ display: 'none' }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default App; 

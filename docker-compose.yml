@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  clay-csv-viewer:
+    build: .
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes:
+      # Optional: mount for persistent data
+      - ./data:/app/data:ro 
