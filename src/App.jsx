@@ -12,7 +12,13 @@ import { Download, RefreshCw, Plus, LogOut } from 'lucide-react';
 import MitutoyoLogo from '../images/mitutoyo-m.svg';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => loadAuthenticationState());
+  console.log('App component rendering...');
+  
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const auth = loadAuthenticationState();
+    console.log('Initial authentication state:', auth);
+    return auth;
+  });
   const [isInitializing, setIsInitializing] = useState(true);
   const [files, setFiles] = useState([]);
   const [activeFileId, setActiveFileId] = useState(null);
@@ -23,6 +29,7 @@ function App() {
 
   // Load session data on mount if authenticated
   useEffect(() => {
+    console.log('App useEffect - isAuthenticated:', isAuthenticated);
     if (isAuthenticated) {
       const sessionData = loadSessionData();
       console.log('Loading session data:', sessionData);
@@ -262,8 +269,11 @@ function App() {
     });
   };
 
+  console.log('App render state:', { isInitializing, isAuthenticated, files: files.length });
+
   // Show loading state while initializing
   if (isInitializing) {
+    console.log('Showing loading state');
     return (
       <div style={{
         minHeight: '100vh',
@@ -295,9 +305,11 @@ function App() {
   }
 
   if (!isAuthenticated) {
+    console.log('Showing login screen');
     return <LoginScreen onLogin={() => setIsAuthenticated(true)} />;
   }
 
+  console.log('Showing main app interface');
   return (
     <div style={{ 
       minHeight: '100vh',
