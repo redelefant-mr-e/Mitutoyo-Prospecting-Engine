@@ -1,6 +1,0 @@
-product_id,product_name,category,price,specifications,inventory,last_updated
-P001,MacBook Pro 16",Electronics,2499.99,"{""processor"": ""M2 Pro"", ""memory"": ""16GB"", ""storage"": ""512GB SSD"", ""display"": ""16-inch Retina""}",45,2024-02-10
-P002,Wireless Headphones,Electronics,199.99,"{""brand"": ""Sony"", ""type"": ""Over-ear"", ""battery_life"": ""30 hours"", ""noise_cancelling"": true}",120,2024-02-08
-P003,Office Chair,Furniture,299.99,"{""material"": ""Mesh"", ""adjustable"": true, ""weight_capacity"": ""300 lbs"", ""warranty"": ""5 years""}",25,2024-02-05
-P004,Smart Watch,Electronics,399.99,"{""brand"": ""Apple"", ""model"": ""Series 9"", ""features"": [""GPS"", ""Heart Rate"", ""ECG""], ""water_resistant"": true}",78,2024-02-12
-P005,Desk Lamp,Furniture,89.99,"{""style"": ""Modern"", ""adjustable"": true, ""bulb_type"": ""LED"", ""color_temp"": ""3000K-6500K""}",95,2024-02-01 
