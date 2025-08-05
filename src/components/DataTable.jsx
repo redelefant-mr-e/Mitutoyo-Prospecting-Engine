@@ -5,7 +5,7 @@ import { generateRandomId } from '../utils/sessionManager';
 import JsonModal from './JsonModal';
 import JsonFieldDisplay from './JsonFieldDisplay';
 import JsonPreview from './JsonPreview';
-import { Edit2, Check, X } from 'lucide-react';
+import { Edit2, Check, X, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from 'lucide-react';
 
 const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onColumnWidthChange, onColumnRename }) => {
   
@@ -16,6 +16,8 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
   const [editingValue, setEditingValue] = useState('');
   const [lastClickTime, setLastClickTime] = useState(0);
   const [lastClickColumn, setLastClickColumn] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ column: null, direction: 'asc' });
+  const [expandedTexts, setExpandedTexts] = useState({});
   const tableRef = useRef(null);
 
   if (!data || data.length === 0) {
@@ -29,14 +31,76 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
   const { columns, jsonColumns } = analysis || { columns: Object.keys(data[0]), jsonColumns: [] };
   const visibleColumns = columns.filter(col => !hiddenColumns.includes(col));
 
+  // Sort data based on current sort configuration
+  const sortedData = React.useMemo(() => {
+    if (!sortConfig.column) return data;
 
+    return [...data].sort((a, b) => {
+      const aValue = a[sortConfig.column];
+      const bValue = b[sortConfig.column];
+      
+      // Handle null/undefined values
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+      
+      // Handle numbers
+      if (!isNaN(aValue) && !isNaN(bValue)) {
+        return sortConfig.direction === 'asc' 
+          ? Number(aValue) - Number(bValue)
+          : Number(bValue) - Number(aValue);
+      }
+      
+      // Handle strings
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      
+      if (sortConfig.direction === 'asc') {
+        return aStr.localeCompare(bStr);
+      } else {
+        return bStr.localeCompare(aStr);
+      }
+    });
+  }, [data, sortConfig]);
+
+  const handleSort = (columnName) => {
+    setSortConfig(prev => {
+      if (prev.column === columnName) {
+        return {
+          column: columnName,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          column: columnName,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+
+  const getSortIcon = (columnName) => {
+    if (sortConfig.column !== columnName) {
+      return <ArrowUpDown size={14} />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp size={14} /> 
+      : <ArrowDown size={14} />;
+  };
 
   const handleJsonClick = (jsonData, columnName) => {
     setSelectedJson(jsonData);
     setSelectedColumn(columnName);
   };
 
-  const renderCell = (value, columnName) => {
+  const toggleTextExpansion = (rowIndex, columnName) => {
+    const key = `${rowIndex}-${columnName}`;
+    setExpandedTexts(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const renderCell = (value, columnName, rowIndex) => {
     if (value === null || value === undefined || value === '') {
       return <span style={{ color: '#999', fontStyle: 'italic' }}>—</span>;
     }
@@ -58,10 +122,74 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
     // Regular text display with link detection
     const processedValue = renderCellWithLinks(String(value));
     if (typeof processedValue === 'object' && processedValue.__html) {
-      return <span style={{ fontSize: '0.875rem' }} dangerouslySetInnerHTML={processedValue} />;
+      return <span style={{ fontSize: '0.8125rem' }} dangerouslySetInnerHTML={processedValue} />;
     }
     
-    return <span style={{ fontSize: '0.875rem' }}>{truncateText(String(value), 100)}</span>;
+    const textValue = String(value);
+    const key = `${rowIndex}-${columnName}`;
+    const isExpanded = expandedTexts[key];
+    
+    // For long text, show expandable dropdown
+    if (textValue.length > 60) {
+      return (
+        <div style={{ fontSize: '0.8125rem' }}>
+          <div style={{ 
+            whiteSpace: 'nowrap', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis',
+            marginBottom: '0.25rem'
+          }}>
+            {truncateText(textValue, 60)}
+          </div>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.25rem',
+            fontSize: '0.75rem', 
+            color: '#666',
+            fontStyle: 'italic'
+          }}>
+            <span>{textValue.length} characters</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleTextExpansion(rowIndex, columnName);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.125rem',
+                display: 'flex',
+                alignItems: 'center',
+                color: '#666'
+              }}
+              title={isExpanded ? "Collapse text" : "Expand text"}
+            >
+              {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
+          </div>
+          {isExpanded && (
+            <div style={{
+              marginTop: '0.5rem',
+              padding: '0.5rem',
+              background: '#f8f9fa',
+              border: '1px solid #e9ecef',
+              borderRadius: '0.25rem',
+              fontSize: '0.75rem',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              maxHeight: '200px',
+              overflow: 'auto'
+            }}>
+              {textValue}
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    return <span style={{ fontSize: '0.8125rem' }}>{textValue}</span>;
   };
 
   const handleMouseDown = (e, columnIndex) => {
@@ -92,7 +220,7 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
     if (!resizing) return;
     
     const deltaX = e.clientX - resizing.startX;
-    const newWidth = Math.max(60, resizing.startWidth + deltaX);
+    const newWidth = Math.max(80, resizing.startWidth + deltaX);
     
     onColumnWidthChange(resizing.columnName, newWidth);
   };
@@ -113,7 +241,9 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
     const headerElement = e.target.closest('th');
     console.log('headerElement:', headerElement);
     
-    const headerText = headerElement.querySelector('span')?.textContent || columnName;
+    // Find the header text (now it's in a div with span)
+    const headerTextElement = headerElement.querySelector('div span');
+    const headerText = headerTextElement?.textContent || columnName;
     console.log('headerText:', headerText);
     
     // Create a temporary element to measure text width
@@ -130,11 +260,29 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
     
     console.log('textWidth:', textWidth);
     
-    // Add some padding for better appearance
-    const newWidth = Math.max(80, textWidth + 20);
-    console.log('newWidth:', newWidth);
+    // Calculate optimal width based on header text
+    const headerWidth = textWidth + 40; // Header text + padding
     
-    onColumnWidthChange(columnName, newWidth);
+    // Check if this column has mostly short content
+    const columnValues = data.map(row => String(row[columnName] || '')).filter(val => val.length > 0);
+    const avgLength = columnValues.length > 0 ? columnValues.reduce((sum, val) => sum + val.length, 0) / columnValues.length : 0;
+    const maxLength = columnValues.length > 0 ? Math.max(...columnValues.map(val => val.length)) : 0;
+    
+    let optimalWidth;
+    if (avgLength < 50 && maxLength < 100) {
+      // For short content, use header width or minimum 120px
+      optimalWidth = Math.max(120, headerWidth);
+    } else if (avgLength < 100 && maxLength < 200) {
+      // For medium content, use header width or minimum 150px
+      optimalWidth = Math.max(150, headerWidth);
+    } else {
+      // For long content, use default 200px or header width if larger
+      optimalWidth = Math.max(200, headerWidth);
+    }
+    
+    console.log('optimalWidth:', optimalWidth);
+    
+    onColumnWidthChange(columnName, optimalWidth);
     console.log('=== DOUBLE CLICK COMPLETE ===');
   };
 
@@ -175,12 +323,31 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
         <table className="table">
           <thead>
             <tr>
+              {/* Row number column header */}
+              <th 
+                style={{ 
+                  width: '60px',
+                  minWidth: '60px',
+                  position: 'relative',
+                  cursor: 'default',
+                  userSelect: 'none'
+                }}
+              >
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  paddingRight: '1rem'
+                }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#666' }}>#</span>
+                </div>
+              </th>
               {visibleColumns.map((column, index) => (
                 <th 
                   key={generateRandomId()}
                   style={{ 
-                    width: columnWidths[column] || 'auto',
-                    minWidth: '100px',
+                    width: columnWidths[column] || '200px',
+                    minWidth: '120px',
                     position: 'relative',
                     cursor: resizing ? 'col-resize' : 'default',
                     userSelect: resizing ? 'none' : 'auto'
@@ -246,7 +413,20 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
                       </div>
                     ) : (
                       <>
-                        <span style={{ flex: 1 }}>{column}</span>
+                        <div 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.25rem', 
+                            flex: 1,
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleSort(column)}
+                          title="Click to sort"
+                        >
+                          <span>{column}</span>
+                          {getSortIcon(column)}
+                        </div>
                         <Edit2 
                           size={12} 
                           color="#999" 
@@ -304,11 +484,34 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
             </tr>
           </thead>
           <tbody>
-            {data.map((row, rowIndex) => (
+            {sortedData.map((row, rowIndex) => (
               <tr key={generateRandomId()}>
+                {/* Row number cell */}
+                <td 
+                  style={{ 
+                    width: '60px',
+                    minWidth: '60px',
+                    textAlign: 'center',
+                    fontSize: '0.75rem',
+                    color: '#666',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {rowIndex + 1}
+                </td>
                 {visibleColumns.map((column, colIndex) => (
-                  <td key={generateRandomId()}>
-                    {renderCell(row[column], column)}
+                  <td 
+                    key={generateRandomId()}
+                    style={{ 
+                      width: columnWidths[column] || '200px',
+                      minWidth: '120px',
+                      maxWidth: columnWidths[column] || '200px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {renderCell(row[column], column, rowIndex)}
                   </td>
                 ))}
               </tr>

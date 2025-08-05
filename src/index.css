@@ -252,10 +252,10 @@ body {
   top: 0;
   z-index: 10;
   color: var(--gray-900);
-  font-size: var(--text-sm);
+  font-size: 0.8125rem; /* 13px */
   letter-spacing: 0.025em;
   user-select: none;
-  min-width: 80px;
+  min-width: 120px;
   white-space: nowrap;
 }
 
@@ -264,11 +264,11 @@ body {
   border-bottom: 1px solid var(--gray-100);
   vertical-align: middle;
   transition: background-color 0.15s ease;
-  font-size: var(--text-sm);
+  font-size: 0.8125rem; /* 13px */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  min-width: 80px;
+  min-width: 120px;
   color: var(--gray-700);
 }
 
