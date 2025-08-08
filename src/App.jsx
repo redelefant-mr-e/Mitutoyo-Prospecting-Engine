@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Papa from 'papaparse';
 import { analyzeCSVData } from './utils/csvAnalyzer';
-import { saveSessionData, loadSessionData, clearSessionData, generateRandomId, saveAuthenticationState, loadAuthenticationState, getStorageInfo } from './utils/sessionManager';
+import { saveSessionData, loadSessionData, clearSessionData, generateRandomId, saveAuthenticationState, loadAuthenticationState } from './utils/sessionManager';
 import { loadSharedFiles } from './utils/sharedDataLoader';
+import { loadGlobalTabPreferences, applyGlobalPreferences, generatePreferences } from './utils/globalTabPreferences';
 import FileUpload from './components/FileUpload';
 import DataStats from './components/DataStats';
 import DataTable from './components/DataTable';
@@ -42,12 +43,17 @@ function App() {
       const sessionData = loadSessionData();
       console.log('Loading session data:', sessionData);
       
-      // Load shared files
+      // Load shared files and global preferences
       console.log('🔄 App: Starting to load shared files...');
-      loadSharedFiles().then(sharedFiles => {
+      Promise.all([loadSharedFiles(), loadGlobalTabPreferences()]).then(([sharedFiles, globalPreferences]) => {
         console.log(`✅ App: Loaded ${sharedFiles.length} shared files`);
         // Combine session files with shared files
-        const allFiles = [...sessionData.files, ...sharedFiles];
+        let allFiles = [...sessionData.files, ...sharedFiles];
+        
+        // Apply global preferences to shared files
+        const sharedFilesWithPreferences = applyGlobalPreferences(sharedFiles, globalPreferences);
+        allFiles = [...sessionData.files, ...sharedFilesWithPreferences];
+        
         console.log(`📊 App: Total files (session + shared): ${allFiles.length}`);
         
         if (allFiles.length > 0) {
@@ -219,9 +225,21 @@ function App() {
   };
 
   const handleTabRename = (fileId, newName) => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId ? { ...file, displayName: newName } : file
-    ));
+    setFiles(prev => {
+      const newFiles = prev.map(file => 
+        file.id === fileId ? { ...file, displayName: newName } : file
+      );
+      
+      // Save global preferences for shared files
+      const sharedFiles = newFiles.filter(f => f.isShared);
+      if (sharedFiles.length > 0) {
+        const preferences = generatePreferences(sharedFiles);
+        console.log('💾 Saving global preferences after rename:', preferences);
+        // In a real implementation, this would save to the repository
+      }
+      
+      return newFiles;
+    });
   };
 
   const handleTabReorder = (draggedFileId, targetFileId) => {
@@ -235,6 +253,14 @@ function App() {
       const newFiles = [...prev];
       const [draggedFile] = newFiles.splice(draggedIndex, 1);
       newFiles.splice(targetIndex, 0, draggedFile);
+      
+      // Save global preferences for shared files
+      const sharedFiles = newFiles.filter(f => f.isShared);
+      if (sharedFiles.length > 0) {
+        const preferences = generatePreferences(sharedFiles);
+        console.log('💾 Saving global preferences after reorder:', preferences);
+        // In a real implementation, this would save to the repository
+      }
       
       return newFiles;
     });
@@ -592,32 +618,7 @@ function App() {
                       Add File
                     </button>
                     
-                    {/* Storage usage indicator */}
-                    {files.length > 0 && (
-                      <div style={{
-                        fontSize: 'var(--text-xs)',
-                        color: 'var(--gray-500)',
-                        padding: 'var(--space-2) var(--space-3)',
-                        backgroundColor: 'var(--gray-50)',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--gray-200)'
-                      }}>
-                        {(() => {
-                          const storageInfo = getStorageInfo();
-                          return (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                              <div style={{
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
-                                backgroundColor: storageInfo.isNearQuota ? 'var(--orange-500)' : 'var(--green-500)'
-                              }} />
-                              {Math.round(storageInfo.usagePercent)}% used
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
+
                   </div>
                 </div>
 
