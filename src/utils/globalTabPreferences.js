@@ -54,8 +54,11 @@ ${JSON.stringify(preferences, null, 2)}
 // Apply global preferences to files
 export const applyGlobalPreferences = (files, preferences) => {
   if (!preferences || !preferences.tabOrder || preferences.tabOrder.length === 0) {
+    console.log('📝 No global preferences to apply, using default order');
     return files;
   }
+
+  console.log('🔄 Applying global preferences to files...');
 
   // Create a map of file IDs to their desired order
   const orderMap = {};
@@ -73,17 +76,19 @@ export const applyGlobalPreferences = (files, preferences) => {
   // Apply global tab names
   const filesWithNames = sortedFiles.map(file => {
     if (preferences.tabNames && preferences.tabNames[file.id]) {
+      console.log(`📝 Applying custom name to ${file.id}: "${preferences.tabNames[file.id]}"`);
       return { ...file, displayName: preferences.tabNames[file.id] };
     }
     return file;
   });
 
+  console.log(`✅ Applied global preferences to ${filesWithNames.length} files`);
   return filesWithNames;
 };
 
 // Generate preferences from current file state
 export const generatePreferences = (files) => {
-  return {
+  const preferences = {
     tabOrder: files.map(file => file.id),
     tabNames: files.reduce((names, file) => {
       // Only save custom names (not the default filename)
@@ -95,4 +100,12 @@ export const generatePreferences = (files) => {
     }, {}),
     lastUpdated: new Date().toISOString()
   };
+
+  console.log('📊 Generated preferences:', {
+    tabOrder: preferences.tabOrder.length,
+    customNames: Object.keys(preferences.tabNames).length,
+    lastUpdated: preferences.lastUpdated
+  });
+
+  return preferences;
 };
