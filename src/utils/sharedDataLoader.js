@@ -12,39 +12,92 @@ const getBaseUrl = () => {
   return '';
 };
 
-const SHARED_FILES = [
-  {
-    name: 'All Companies Denmark.csv',
-    displayName: 'All Companies Denmark',
-    url: `${getBaseUrl()}/data/All Companies Denmark.csv`
-  },
-  {
-    name: 'All Companies.csv',
-    displayName: 'All Companies',
-    url: `${getBaseUrl()}/data/All Companies.csv`
-  },
-  {
-    name: 'Companies - Medium, High, or Perfect Match.csv',
-    displayName: 'Companies - Medium, High, or Perfect Match',
-    url: `${getBaseUrl()}/data/Companies - Medium, High, or Perfect Match.csv`
-  },
-  {
-    name: 'Enrich Contact Data - Medium, High, or Perfect Match.csv',
-    displayName: 'Enrich Contact Data - Medium, High, or Perfect Match',
-    url: `${getBaseUrl()}/data/Enrich Contact Data - Medium, High, or Perfect Match.csv`
-  },
-  {
-    name: 'Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv',
-    displayName: 'Enrich Contact Data Denmark - Medium, High, or Perfect Match',
-    url: `${getBaseUrl()}/data/Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv`
-  }
+// List of known CSV files (fallback if dynamic discovery fails)
+const KNOWN_FILES = [
+  'All Companies Denmark.csv',
+  'All Companies.csv',
+  'Companies - Medium, High, or Perfect Match.csv',
+  'Enrich Contact Data - Medium, High, or Perfect Match.csv',
+  'Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv'
 ];
+
+// Function to discover CSV files dynamically
+const discoverCSVFiles = async () => {
+  const baseUrl = getBaseUrl();
+  const discoveredFiles = [];
+  
+  try {
+    // First, try to load the file index
+    const indexUrl = `${baseUrl}/data/file-index.json`;
+    console.log(`📋 Attempting to load file index from: ${indexUrl}`);
+    
+    const indexResponse = await fetch(indexUrl);
+    if (indexResponse.ok) {
+      const fileIndex = await indexResponse.json();
+      console.log(`✅ Loaded file index with ${fileIndex.files.length} files`);
+      
+      // Use the file index to discover files
+      for (const fileInfo of fileIndex.files) {
+        const url = `${baseUrl}/data/${fileInfo.name}`;
+        try {
+          const response = await fetch(url, { method: 'HEAD' });
+          if (response.ok) {
+            discoveredFiles.push({
+              name: fileInfo.name,
+              displayName: fileInfo.displayName || fileInfo.name.replace('.csv', ''),
+              description: fileInfo.description,
+              url: url
+            });
+          } else {
+            console.warn(`⚠️ File listed in index but not found: ${fileInfo.name}`);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Failed to check file ${fileInfo.name}:`, error);
+        }
+      }
+    } else {
+      console.warn('⚠️ File index not found, using fallback discovery');
+      // Fallback to known files
+      for (const fileName of KNOWN_FILES) {
+        const url = `${baseUrl}/data/${fileName}`;
+        try {
+          const response = await fetch(url, { method: 'HEAD' });
+          if (response.ok) {
+            discoveredFiles.push({
+              name: fileName,
+              displayName: fileName.replace('.csv', ''),
+              url: url
+            });
+          }
+        } catch (error) {
+          console.warn(`Failed to check file ${fileName}:`, error);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('❌ Failed to discover files dynamically, using fallback:', error);
+    // Final fallback to known files
+    for (const fileName of KNOWN_FILES) {
+      discoveredFiles.push({
+        name: fileName,
+        displayName: fileName.replace('.csv', ''),
+        url: `${baseUrl}/data/${fileName}`
+      });
+    }
+  }
+  
+  return discoveredFiles;
+};
 
 export const loadSharedFiles = async () => {
   console.log('🔄 Loading shared files...');
   const files = [];
   
-  for (const sharedFile of SHARED_FILES) {
+  // Discover available CSV files
+  const discoveredFiles = await discoverCSVFiles();
+  console.log(`📁 Discovered ${discoveredFiles.length} CSV files`);
+  
+  for (const sharedFile of discoveredFiles) {
     try {
       console.log(`📁 Attempting to load: ${sharedFile.url}`);
       const response = await fetch(sharedFile.url);
