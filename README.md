@@ -120,6 +120,12 @@ npm run preview
 
 ## 🎯 Usage
 
+### Getting Started
+1. **Access the App**: Open the application in your browser
+2. **Login**: Enter the password `Mitutoyo` to access the platform
+3. **View Sample Data**: The app automatically loads sample CSV files for demonstration
+
+### Working with Data
 1. **Upload CSV Files**: Drag and drop your CSV files onto the upload area or click to browse
 2. **Manage Multiple Files**: Use tabs to switch between different CSV files
 3. **Rename Views**: Click the edit icon on any tab to rename it for better organization

@@ -16,6 +16,12 @@ function App() {
   console.log('App component rendering...');
   
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // For development, you can set this to true to skip login
+    const devMode = import.meta.env.DEV && import.meta.env.VITE_SKIP_LOGIN === 'true';
+    if (devMode) {
+      console.log('Development mode: skipping login');
+      return true;
+    }
     const auth = loadAuthenticationState();
     console.log('Initial authentication state:', auth);
     return auth;
@@ -37,9 +43,12 @@ function App() {
       console.log('Loading session data:', sessionData);
       
       // Load shared files
+      console.log('🔄 App: Starting to load shared files...');
       loadSharedFiles().then(sharedFiles => {
+        console.log(`✅ App: Loaded ${sharedFiles.length} shared files`);
         // Combine session files with shared files
         const allFiles = [...sessionData.files, ...sharedFiles];
+        console.log(`📊 App: Total files (session + shared): ${allFiles.length}`);
         
         if (allFiles.length > 0) {
           setFiles(allFiles);
@@ -63,7 +72,7 @@ function App() {
           setColumnWidths(cleanedColumnWidths);
         }
       }).catch(error => {
-        console.warn('Failed to load shared files:', error);
+        console.error('❌ App: Failed to load shared files:', error);
         // Fallback to just session data
         if (sessionData.files.length > 0) {
           setFiles(sessionData.files);
