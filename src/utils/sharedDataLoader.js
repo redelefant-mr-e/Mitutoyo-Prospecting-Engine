@@ -6,7 +6,7 @@
 const getBaseUrl = () => {
   // Check if we're on GitHub Pages
   if (window.location.hostname === 'redelefant-mr-e.github.io') {
-    return '/Mitutoyo-Prospecting-Engine';
+    return '/Mitutoyo-Prospecting-Engine/data';
   }
   // Local development - use the public directory
   return '/data';
