@@ -12,72 +12,23 @@ const getBaseUrl = () => {
   return '';
 };
 
-// Common CSV file patterns to try for discovery
-const COMMON_CSV_PATTERNS = [
-  // Common business data patterns
-  'data.csv', 'export.csv', 'companies.csv', 'contacts.csv', 'leads.csv',
-  'customers.csv', 'prospects.csv', 'sales.csv', 'marketing.csv',
-  'users.csv', 'products.csv', 'orders.csv', 'inventory.csv',
-  'clients.csv', 'partners.csv', 'suppliers.csv', 'employees.csv',
-  'transactions.csv', 'revenue.csv', 'analytics.csv', 'reports.csv',
-  // Generic patterns
-  'file.csv', 'dataset.csv', 'table.csv', 'list.csv', 'records.csv',
-  // Add more patterns as needed
-];
-
 // Function to discover CSV files dynamically
 const discoverCSVFiles = async () => {
   const baseUrl = getBaseUrl();
   const discoveredFiles = [];
   
-      try {
-      // First, try to load the file manifest (if it exists)
-      const manifestUrl = `${baseUrl}/data/file-manifest.json`;
-      console.log(`📋 Attempting to load file manifest from: ${manifestUrl}`);
+  try {
+    // Load the simple files list
+    const filesUrl = `${baseUrl}/data/files.json`;
+    console.log(`📋 Loading files list from: ${filesUrl}`);
+    
+    const filesResponse = await fetch(filesUrl);
+    if (filesResponse.ok) {
+      const filesList = await filesResponse.json();
+      console.log(`✅ Loaded files list with ${filesList.files.length} files`);
       
-      const manifestResponse = await fetch(manifestUrl);
-      if (manifestResponse.ok) {
-        const fileManifest = await manifestResponse.json();
-        console.log(`✅ Loaded file manifest with ${fileManifest.files.length} files`);
-        
-        // Use the file manifest to discover files
-        for (const fileInfo of fileManifest.files) {
-          const url = `${baseUrl}/data/${fileInfo.name}`;
-          try {
-            const response = await fetch(url, { method: 'HEAD' });
-            if (response.ok) {
-              discoveredFiles.push({
-                name: fileInfo.name,
-                displayName: fileInfo.displayName || fileInfo.name.replace('.csv', ''),
-                description: fileInfo.description,
-                url: url
-              });
-            } else {
-              console.warn(`⚠️ File listed in manifest but not found: ${fileInfo.name}`);
-            }
-          } catch (error) {
-            console.warn(`⚠️ Failed to check file ${fileInfo.name}:`, error);
-          }
-        }
-      } else {
-              console.log('📁 No file manifest found, using automatic discovery...');
-      
-      // Automatic discovery - try common file patterns
-      const commonFileNames = [
-        // Include existing files that we know exist
-        'All Companies Denmark.csv',
-        'All Companies.csv',
-        'Companies - Medium, High, or Perfect Match.csv',
-        'Enrich Contact Data - Medium, High, or Perfect Match.csv',
-        'Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv',
-        // Common CSV patterns for any new files
-        ...COMMON_CSV_PATTERNS
-      ];
-      
-      console.log(`🔍 Testing ${commonFileNames.length} potential file patterns...`);
-      
-      // Test each potential file
-      for (const fileName of commonFileNames) {
+      // Load each file that exists
+      for (const fileName of filesList.files) {
         const url = `${baseUrl}/data/${fileName}`;
         try {
           const response = await fetch(url, { method: 'HEAD' });
@@ -87,38 +38,45 @@ const discoverCSVFiles = async () => {
               displayName: fileName.replace('.csv', ''),
               url: url
             });
-            console.log(`✅ Discovered: ${fileName}`);
+            console.log(`✅ Found: ${fileName}`);
+          } else {
+            console.warn(`⚠️ File listed but not found: ${fileName}`);
           }
         } catch (error) {
-          // Silently skip files that don't exist
+          console.warn(`⚠️ Failed to check file ${fileName}:`, error);
         }
       }
+    } else {
+      console.log('📁 No files list found, using fallback...');
       
-      if (discoveredFiles.length > 0) {
-        console.log(`🎯 Auto-discovered ${discoveredFiles.length} CSV files`);
-        console.log('💡 Tip: Run "node update-file-index.js" to create a file index for faster loading');
-      } else {
-        console.log('⚠️ No CSV files found in data directory');
+      // Fallback to known files
+      const fallbackFiles = [
+        'All Companies Denmark.csv',
+        'All Companies.csv',
+        'Companies - Medium, High, or Perfect Match.csv',
+        'Enrich Contact Data - Medium, High, or Perfect Match.csv',
+        'Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv'
+      ];
+      
+      for (const fileName of fallbackFiles) {
+        const url = `${baseUrl}/data/${fileName}`;
+        try {
+          const response = await fetch(url, { method: 'HEAD' });
+          if (response.ok) {
+            discoveredFiles.push({
+              name: fileName,
+              displayName: fileName.replace('.csv', ''),
+              url: url
+            });
+            console.log(`✅ Found: ${fileName}`);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Failed to check file ${fileName}:`, error);
+        }
       }
     }
   } catch (error) {
-    console.warn('❌ Failed to discover files dynamically, using fallback:', error);
-    // Final fallback to existing files
-    const fallbackFiles = [
-      'All Companies Denmark.csv',
-      'All Companies.csv',
-      'Companies - Medium, High, or Perfect Match.csv',
-      'Enrich Contact Data - Medium, High, or Perfect Match.csv',
-      'Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv'
-    ];
-    
-    for (const fileName of fallbackFiles) {
-      discoveredFiles.push({
-        name: fileName,
-        displayName: fileName.replace('.csv', ''),
-        url: `${baseUrl}/data/${fileName}`
-      });
-    }
+    console.warn('❌ Failed to discover files:', error);
   }
   
   return discoveredFiles;
