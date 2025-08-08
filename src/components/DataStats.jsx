@@ -4,9 +4,9 @@ import { FileText, Database, Code, BarChart3, Hash, Calendar, CheckSquare } from
 const DataStats = ({ analysis }) => {
   if (!analysis) return null;
 
-  const { totalRows, totalColumns, jsonColumns, dataTypes } = analysis;
+  const { totalRows = 0, totalColumns = 0, jsonColumns = [], dataTypes = {} } = analysis;
   
-  const jsonColumnCount = jsonColumns.length;
+  const jsonColumnCount = jsonColumns ? jsonColumns.length : 0;
   const stringColumns = Object.values(dataTypes).filter(type => type === 'string').length;
   const numberColumns = Object.values(dataTypes).filter(type => type === 'number').length;
   const dateColumns = Object.values(dataTypes).filter(type => type === 'date').length;

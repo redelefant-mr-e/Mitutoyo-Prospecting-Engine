@@ -28,7 +28,7 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
     );
   }
 
-  const { columns, jsonColumns } = analysis || { columns: Object.keys(data[0]), jsonColumns: [] };
+  const { columns, jsonColumns = [] } = analysis || { columns: Object.keys(data[0]), jsonColumns: [] };
   const visibleColumns = columns.filter(col => !hiddenColumns.includes(col));
 
   // Sort data based on current sort configuration
@@ -106,7 +106,7 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
     }
 
     // Check if this is a JSON column
-    if (jsonColumns.includes(columnName)) {
+    if (jsonColumns && jsonColumns.includes(columnName)) {
       const parsed = safeJsonParse(value);
       if (typeof parsed === 'object' && parsed !== null) {
         return (
@@ -437,7 +437,7 @@ const DataTable = ({ data, analysis, hiddenColumns = [], columnWidths = {}, onCo
                         />
                       </>
                     )}
-                    {jsonColumns.includes(column) && (
+                    {jsonColumns && jsonColumns.includes(column) && (
                       <span style={{ 
                         fontSize: '0.75rem', 
                         background: 'var(--mitutoyo-blue)', 

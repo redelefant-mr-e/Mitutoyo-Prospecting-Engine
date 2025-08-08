@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>localStorage Test</title>
+</head>
+<body>
+    <h1>localStorage Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        function testLocalStorage() {
+            const results = document.getElementById('results');
+            
+            // Test basic localStorage functionality
+            try {
+                localStorage.setItem('test', 'Hello World');
+                const testValue = localStorage.getItem('test');
+                results.innerHTML += `<p>✅ Basic localStorage test: ${testValue}</p>`;
+            } catch (error) {
+                results.innerHTML += `<p>❌ Basic localStorage test failed: ${error.message}</p>`;
+            }
+            
+            // Test localStorage size
+            let totalSize = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    totalSize += localStorage[key].length + key.length;
+                }
+            }
+            results.innerHTML += `<p>📊 Current localStorage size: ${(totalSize / 1024).toFixed(2)} KB</p>`;
+            
+            // Test quota limits
+            try {
+                // Try to store a large amount of data
+                const largeData = 'x'.repeat(1024 * 1024); // 1MB
+                localStorage.setItem('large_test', largeData);
+                results.innerHTML += `<p>✅ Large data test (1MB): Success</p>`;
+                localStorage.removeItem('large_test');
+            } catch (error) {
+                results.innerHTML += `<p>❌ Large data test failed: ${error.message}</p>`;
+            }
+            
+            // Test with even larger data
+            try {
+                const veryLargeData = 'x'.repeat(5 * 1024 * 1024); // 5MB
+                localStorage.setItem('very_large_test', veryLargeData);
+                results.innerHTML += `<p>✅ Very large data test (5MB): Success</p>`;
+                localStorage.removeItem('very_large_test');
+            } catch (error) {
+                results.innerHTML += `<p>❌ Very large data test failed: ${error.message}</p>`;
+            }
+            
+            // Clean up test data
+            localStorage.removeItem('test');
+        }
+        
+        testLocalStorage();
+    </script>
+</body>
+</html> 

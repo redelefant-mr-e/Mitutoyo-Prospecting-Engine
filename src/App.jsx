@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Papa from 'papaparse';
 import { analyzeCSVData } from './utils/csvAnalyzer';
-import { saveSessionData, loadSessionData, clearSessionData, generateRandomId, saveAuthenticationState, loadAuthenticationState } from './utils/sessionManager';
+import { saveSessionData, loadSessionData, clearSessionData, generateRandomId, saveAuthenticationState, loadAuthenticationState, getStorageInfo } from './utils/sessionManager';
+import { loadSharedFiles } from './utils/sharedDataLoader';
 import FileUpload from './components/FileUpload';
 import DataStats from './components/DataStats';
 import DataTable from './components/DataTable';
@@ -26,6 +27,7 @@ function App() {
   const [columnWidths, setColumnWidths] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [storageWarning, setStorageWarning] = useState('');
 
   // Load session data on mount if authenticated
   useEffect(() => {
@@ -33,27 +35,58 @@ function App() {
     if (isAuthenticated) {
       const sessionData = loadSessionData();
       console.log('Loading session data:', sessionData);
-      if (sessionData.files.length > 0) {
-        setFiles(sessionData.files);
-        setActiveFileId(sessionData.activeFileId);
+      
+      // Load shared files
+      loadSharedFiles().then(sharedFiles => {
+        // Combine session files with shared files
+        const allFiles = [...sessionData.files, ...sharedFiles];
         
-        // Clean up hidden columns and column widths to only include existing files
-        const fileIds = sessionData.files.map(f => f.id);
-        const cleanedHiddenColumns = {};
-        const cleanedColumnWidths = {};
-        
-        fileIds.forEach(fileId => {
-          if (sessionData.hiddenColumns[fileId]) {
-            cleanedHiddenColumns[fileId] = sessionData.hiddenColumns[fileId];
-          }
-          if (sessionData.columnWidths[fileId]) {
-            cleanedColumnWidths[fileId] = sessionData.columnWidths[fileId];
-          }
-        });
-        
-        setHiddenColumns(cleanedHiddenColumns);
-        setColumnWidths(cleanedColumnWidths);
-      }
+        if (allFiles.length > 0) {
+          setFiles(allFiles);
+          setActiveFileId(sessionData.activeFileId);
+          
+          // Clean up hidden columns and column widths to only include existing files
+          const fileIds = allFiles.map(f => f.id);
+          const cleanedHiddenColumns = {};
+          const cleanedColumnWidths = {};
+          
+          fileIds.forEach(fileId => {
+            if (sessionData.hiddenColumns[fileId]) {
+              cleanedHiddenColumns[fileId] = sessionData.hiddenColumns[fileId];
+            }
+            if (sessionData.columnWidths[fileId]) {
+              cleanedColumnWidths[fileId] = sessionData.columnWidths[fileId];
+            }
+          });
+          
+          setHiddenColumns(cleanedHiddenColumns);
+          setColumnWidths(cleanedColumnWidths);
+        }
+      }).catch(error => {
+        console.warn('Failed to load shared files:', error);
+        // Fallback to just session data
+        if (sessionData.files.length > 0) {
+          setFiles(sessionData.files);
+          setActiveFileId(sessionData.activeFileId);
+          
+          // Clean up hidden columns and column widths to only include existing files
+          const fileIds = sessionData.files.map(f => f.id);
+          const cleanedHiddenColumns = {};
+          const cleanedColumnWidths = {};
+          
+          fileIds.forEach(fileId => {
+            if (sessionData.hiddenColumns[fileId]) {
+              cleanedHiddenColumns[fileId] = sessionData.hiddenColumns[fileId];
+            }
+            if (sessionData.columnWidths[fileId]) {
+              cleanedColumnWidths[fileId] = sessionData.columnWidths[fileId];
+            }
+          });
+          
+          setHiddenColumns(cleanedHiddenColumns);
+          setColumnWidths(cleanedColumnWidths);
+        }
+      });
     }
     setIsInitializing(false);
   }, [isAuthenticated]);
@@ -61,8 +94,19 @@ function App() {
   // Save session data when it changes
   useEffect(() => {
     if (isAuthenticated && files.length > 0) {
-      console.log('Saving session data:', { files: files.length, activeFileId, hiddenColumns: Object.keys(hiddenColumns).length });
-      saveSessionData(files, activeFileId, hiddenColumns, columnWidths);
+      // Only save user-uploaded files, not shared files
+      const userFiles = files.filter(file => !file.isShared);
+      
+      if (userFiles.length > 0) {
+        console.log('Saving session data:', { files: userFiles.length, activeFileId, hiddenColumns: Object.keys(hiddenColumns).length });
+        const result = saveSessionData(userFiles, activeFileId, hiddenColumns, columnWidths);
+        
+        if (result && result.warning) {
+          setStorageWarning(result.warning);
+          // Clear warning after 10 seconds
+          setTimeout(() => setStorageWarning(''), 10000);
+        }
+      }
     }
   }, [files, activeFileId, hiddenColumns, columnWidths, isAuthenticated]);
 
@@ -135,6 +179,14 @@ function App() {
   };
 
   const handleTabClose = (fileId) => {
+    const fileToClose = files.find(f => f.id === fileId);
+    
+    // Don't allow closing shared files
+    if (fileToClose && fileToClose.isShared) {
+      alert('Shared files cannot be closed. They are loaded from the repository.');
+      return;
+    }
+    
     setFiles(prev => prev.filter(file => file.id !== fileId));
     setHiddenColumns(prev => {
       const newHidden = { ...prev };
@@ -194,8 +246,43 @@ function App() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    // Don't clear the data immediately - let it persist for the session
+    // Don't clear the files - they should persist across login/logout
+    // Only clear UI state
+    setActiveFileId(null);
+    setHiddenColumns({});
+    setColumnWidths({});
     setError('');
+    setStorageWarning('');
+    // Only clear authentication state, not the files
+    localStorage.removeItem(STORAGE_KEYS.AUTHENTICATED);
+  };
+
+  const handleClearAllData = () => {
+    if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+      setFiles([]);
+      setActiveFileId(null);
+      setHiddenColumns({});
+      setColumnWidths({});
+      setError('');
+      setStorageWarning('');
+      clearSessionData();
+      alert('All data cleared!');
+    }
+  };
+
+  const handleClearOldData = () => {
+    if (confirm('Clear old localStorage data and keep only shared files?')) {
+      // Clear all localStorage data
+      localStorage.clear();
+      // Force reload to start completely fresh
+      window.location.reload();
+    }
+  };
+
+
+
+  const clearStorageWarning = () => {
+    setStorageWarning('');
   };
 
   const handleColumnWidthChange = (columnName, newWidth) => {
@@ -390,14 +477,7 @@ function App() {
                 Logout
               </button>
               <button
-                onClick={() => {
-                  clearSessionData();
-                  setFiles([]);
-                  setActiveFileId(null);
-                  setHiddenColumns({});
-                  setColumnWidths({});
-                  alert('All data cleared!');
-                }}
+                onClick={handleClearAllData}
                 className="btn btn-danger"
                 style={{
                   fontSize: 'var(--text-sm)',
@@ -406,6 +486,17 @@ function App() {
               >
                 Clear Data
               </button>
+              <button
+                onClick={handleClearOldData}
+                className="btn btn-warning"
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--font-medium)'
+                }}
+              >
+                Clear Old Data
+              </button>
+
             </div>
           </div>
         </div>
@@ -474,12 +565,83 @@ function App() {
                       <Plus size={16} />
                       Add File
                     </button>
+                    
+                    {/* Storage usage indicator */}
+                    {files.length > 0 && (
+                      <div style={{
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--gray-500)',
+                        padding: 'var(--space-2) var(--space-3)',
+                        backgroundColor: 'var(--gray-50)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--gray-200)'
+                      }}>
+                        {(() => {
+                          const storageInfo = getStorageInfo();
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                              <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: storageInfo.isNearQuota ? 'var(--orange-500)' : 'var(--green-500)'
+                              }} />
+                              {Math.round(storageInfo.usagePercent)}% used
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {error && (
                   <div className="error">
                     {error}
+                  </div>
+                )}
+
+                {storageWarning && (
+                  <div className="warning" style={{
+                    backgroundColor: 'var(--orange-50)',
+                    border: '1px solid var(--orange-200)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: 'var(--space-4)',
+                    marginBottom: 'var(--space-4)',
+                    color: 'var(--orange-800)',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 'var(--font-medium)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <div style={{
+                          width: '16px',
+                          height: '16px',
+                          backgroundColor: 'var(--orange-500)',
+                          borderRadius: '50%',
+                          flexShrink: 0
+                        }} />
+                        {storageWarning}
+                      </div>
+                      <button 
+                        onClick={clearStorageWarning} 
+                        style={{ 
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--orange-600)',
+                          cursor: 'pointer',
+                          fontSize: 'var(--text-sm)',
+                          fontWeight: 'var(--font-medium)',
+                          padding: 'var(--space-1) var(--space-2)',
+                          borderRadius: 'var(--radius-sm)',
+                          marginLeft: 'var(--space-3)'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--orange-100)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
                   </div>
                 )}
 
