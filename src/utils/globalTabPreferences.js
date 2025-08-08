@@ -21,8 +21,10 @@ export const loadGlobalTabPreferences = async () => {
     const response = await fetch(PREFERENCES_FILE);
     if (response.ok) {
       const preferences = await response.json();
+      console.log('✅ Loaded global tab preferences:', preferences);
       return preferences;
     } else {
+      console.log('📁 No global tab preferences found, using defaults');
       return {
         tabOrder: [],
         tabNames: {},

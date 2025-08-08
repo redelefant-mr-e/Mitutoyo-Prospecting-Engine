@@ -47,12 +47,16 @@ function App() {
       console.log('🔄 App: Starting to load shared files...');
       Promise.all([loadSharedFiles(), loadGlobalTabPreferences()]).then(([sharedFiles, globalPreferences]) => {
         console.log(`✅ App: Loaded ${sharedFiles.length} shared files`);
-        // Combine session files with shared files
-        let allFiles = [...sessionData.files, ...sharedFiles];
         
         // Apply global preferences to shared files
         const sharedFilesWithPreferences = applyGlobalPreferences(sharedFiles, globalPreferences);
-        allFiles = [...sessionData.files, ...sharedFilesWithPreferences];
+        
+        // Combine session files with shared files (using the ones with preferences applied)
+        // Filter out any session files that have the same ID as shared files to avoid conflicts
+        const sessionFilesWithoutConflicts = sessionData.files.filter(sessionFile => 
+          !sharedFilesWithPreferences.some(sharedFile => sharedFile.id === sessionFile.id)
+        );
+        const allFiles = [...sessionFilesWithoutConflicts, ...sharedFilesWithPreferences];
         
         console.log(`📊 App: Total files (session + shared): ${allFiles.length}`);
         
@@ -79,6 +83,7 @@ function App() {
         }
       }).catch(error => {
         console.error('❌ App: Failed to load shared files:', error);
+        console.error('❌ Error details:', error.message, error.stack);
         // Fallback to just session data
         if (sessionData.files.length > 0) {
           setFiles(sessionData.files);

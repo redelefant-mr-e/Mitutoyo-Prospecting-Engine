@@ -19,7 +19,7 @@ const discoverCSVFiles = async () => {
   
   try {
     // Load the simple files list
-    const filesUrl = `${baseUrl}/data/files.json`;
+    const filesUrl = `${baseUrl}/files.json`;
     console.log(`📋 Loading files list from: ${filesUrl}`);
     
     const filesResponse = await fetch(filesUrl);
@@ -29,7 +29,8 @@ const discoverCSVFiles = async () => {
       
       // Load each file that exists
       for (const fileName of filesList.files) {
-        const url = `${baseUrl}/data/${fileName}`;
+        const encodedFileName = encodeURIComponent(fileName);
+        const url = `${baseUrl}/${encodedFileName}`;
         try {
           const response = await fetch(url, { method: 'HEAD' });
           if (response.ok) {
