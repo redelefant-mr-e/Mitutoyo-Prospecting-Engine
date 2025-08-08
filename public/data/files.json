@@ -1,8 +1,10 @@
 {
   "files": [
-    "All Companies Denmark.csv",
-    "All Companies.csv",
-    "Companies - Medium, High, or Perfect Match.csv"
+    "All Companies Denmark-All Companies Denmark.csv",
+    "All Companies-All Companies.csv",
+    "Enrich Contact Data - Medium, High, or Perfect Match.csv",
+    "Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv",
+    "Find (all) People.csv"
   ],
-  "lastUpdated": "2025-08-08T18:25:17.112Z"
+  "lastUpdated": "2025-08-08T18:54:49.403Z"
 }
