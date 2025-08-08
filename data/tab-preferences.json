@@ -1,0 +1,17 @@
+{
+  "tabOrder": [
+    "shared-All Companies-All Companies.csv",
+    "shared-All Companies Denmark-All Companies Denmark.csv",
+    "shared-Find (all) People.csv",
+    "shared-Enrich Contact Data - Medium, High, or Perfect Match.csv",
+    "shared-Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv"
+  ],
+  "tabNames": {
+    "shared-All Companies-All Companies.csv": "All Companies",
+    "shared-All Companies Denmark-All Companies Denmark.csv": "Denmark Companies",
+    "shared-Find (all) People.csv": "All People",
+    "shared-Enrich Contact Data - Medium, High, or Perfect Match.csv": "Enriched Contacts",
+    "shared-Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv": "Denmark Enriched"
+  },
+  "lastUpdated": "2025-08-08T21:30:00.000Z"
+}
