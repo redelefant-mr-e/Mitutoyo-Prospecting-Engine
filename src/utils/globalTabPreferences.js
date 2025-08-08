@@ -3,7 +3,17 @@
  * This allows all users to have consistent tab ordering and naming
  */
 
-const PREFERENCES_FILE = '/data/tab-preferences.json';
+// Get the base URL for the current environment
+const getBaseUrl = () => {
+  // Check if we're on GitHub Pages
+  if (window.location.hostname === 'redelefant-mr-e.github.io') {
+    return '/Mitutoyo-Prospecting-Engine';
+  }
+  // Local development - use the public directory
+  return '/data';
+};
+
+const PREFERENCES_FILE = `${getBaseUrl()}/tab-preferences.json`;
 
 // Load global tab preferences from the repository
 export const loadGlobalTabPreferences = async () => {
@@ -11,10 +21,8 @@ export const loadGlobalTabPreferences = async () => {
     const response = await fetch(PREFERENCES_FILE);
     if (response.ok) {
       const preferences = await response.json();
-      console.log('✅ Loaded global tab preferences:', preferences);
       return preferences;
     } else {
-      console.log('📁 No global tab preferences found, using defaults');
       return {
         tabOrder: [],
         tabNames: {},

@@ -1,0 +1,31 @@
+{
+  "files": [
+    {
+      "name": "All Companies Denmark.csv",
+      "displayName": "All Companies Denmark",
+      "description": "Danish company data"
+    },
+    {
+      "name": "All Companies.csv",
+      "displayName": "All Companies",
+      "description": "Complete company database"
+    },
+    {
+      "name": "Companies - Medium, High, or Perfect Match.csv",
+      "displayName": "Companies - Medium, High, or Perfect Match",
+      "description": "Filtered company matches"
+    },
+    {
+      "name": "Enrich Contact Data - Medium, High, or Perfect Match.csv",
+      "displayName": "Enrich Contact Data - Medium, High, or Perfect Match",
+      "description": "Contact enrichment data"
+    },
+    {
+      "name": "Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv",
+      "displayName": "Enrich Contact Data Denmark - Medium, High, or Perfect Match",
+      "description": "Danish contact data"
+    }
+  ],
+  "lastUpdated": "2025-08-08T17:36:43.237Z",
+  "version": "1.0"
+}
