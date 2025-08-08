@@ -155,11 +155,14 @@ The application includes several sample CSV files in the `public/data/` director
 - **Enrich Contact Data - Medium, High, or Perfect Match.csv** - Contact enrichment data
 - **Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv** - Danish contact data
 
-These files demonstrate the application's capabilities with:
-- Regular text data (names, emails, company information)
-- JSON metadata with company details and skills
-- Various data types (numbers, dates, booleans)
-- Large datasets for performance testing
+### Adding Your Own Data
+
+You can easily add your own CSV files:
+1. **Upload files** to the `public/data/` folder in GitHub
+2. **Commit and push** the changes
+3. **The app automatically detects** new files and shows them as tabs!
+
+The app uses intelligent file discovery to find any CSV files in the data directory, so no configuration is needed.
 
 ## 🛠️ Technical Details
 

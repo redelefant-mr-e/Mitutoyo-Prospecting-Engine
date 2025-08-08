@@ -27,7 +27,7 @@ const discoverCSVFiles = async () => {
   const discoveredFiles = [];
   
   try {
-    // First, try to load the file index
+    // First, try to load the file index (if it exists)
     const indexUrl = `${baseUrl}/data/file-index.json`;
     console.log(`📋 Attempting to load file index from: ${indexUrl}`);
     
@@ -56,9 +56,23 @@ const discoverCSVFiles = async () => {
         }
       }
     } else {
-      console.warn('⚠️ File index not found, using fallback discovery');
-      // Fallback to known files
-      for (const fileName of KNOWN_FILES) {
+      console.log('📁 No file index found, using automatic discovery...');
+      
+      // Automatic discovery - try common file patterns
+      const commonFileNames = [
+        // Current known files
+        ...KNOWN_FILES,
+        // Common CSV patterns
+        'data.csv', 'export.csv', 'companies.csv', 'contacts.csv', 'leads.csv',
+        'customers.csv', 'prospects.csv', 'sales.csv', 'marketing.csv',
+        'users.csv', 'products.csv', 'orders.csv', 'inventory.csv',
+        // Add more patterns as needed
+      ];
+      
+      console.log(`🔍 Testing ${commonFileNames.length} potential file patterns...`);
+      
+      // Test each potential file
+      for (const fileName of commonFileNames) {
         const url = `${baseUrl}/data/${fileName}`;
         try {
           const response = await fetch(url, { method: 'HEAD' });
@@ -68,10 +82,18 @@ const discoverCSVFiles = async () => {
               displayName: fileName.replace('.csv', ''),
               url: url
             });
+            console.log(`✅ Discovered: ${fileName}`);
           }
         } catch (error) {
-          console.warn(`Failed to check file ${fileName}:`, error);
+          // Silently skip files that don't exist
         }
+      }
+      
+      if (discoveredFiles.length > 0) {
+        console.log(`🎯 Auto-discovered ${discoveredFiles.length} CSV files`);
+        console.log('💡 Tip: Run "node update-file-index.js" to create a file index for faster loading');
+      } else {
+        console.log('⚠️ No CSV files found in data directory');
       }
     }
   } catch (error) {
