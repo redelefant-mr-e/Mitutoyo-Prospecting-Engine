@@ -47,33 +47,8 @@ const discoverCSVFiles = async () => {
         }
       }
     } else {
-      console.log('📁 No files list found, using fallback...');
-      
-      // Fallback to known files
-      const fallbackFiles = [
-        'All Companies Denmark.csv',
-        'All Companies.csv',
-        'Companies - Medium, High, or Perfect Match.csv',
-        'Enrich Contact Data - Medium, High, or Perfect Match.csv',
-        'Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv'
-      ];
-      
-      for (const fileName of fallbackFiles) {
-        const url = `${baseUrl}/data/${fileName}`;
-        try {
-          const response = await fetch(url, { method: 'HEAD' });
-          if (response.ok) {
-            discoveredFiles.push({
-              name: fileName,
-              displayName: fileName.replace('.csv', ''),
-              url: url
-            });
-            console.log(`✅ Found: ${fileName}`);
-          }
-        } catch (error) {
-          console.warn(`⚠️ Failed to check file ${fileName}:`, error);
-        }
-      }
+      console.log('📁 No files list found. Please ensure files.json exists in the data directory.');
+      console.log('💡 Run "node update-file-index.js" to generate the files list.');
     }
   } catch (error) {
     console.warn('❌ Failed to discover files:', error);
