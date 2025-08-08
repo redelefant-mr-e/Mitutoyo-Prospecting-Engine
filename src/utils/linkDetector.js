@@ -5,10 +5,12 @@
 export const detectLinks = (text) => {
   if (typeof text !== 'string') return text;
   
-  // URL regex pattern
+  // URL regex pattern (with http/https)
   const urlPattern = /(https?:\/\/[^\s]+)/g;
   // Email regex pattern
   const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+  // Domain pattern (without http/https)
+  const domainPattern = /\b([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b/g;
   
   let result = text;
   
@@ -20,6 +22,15 @@ export const detectLinks = (text) => {
   // Replace emails with mailto links
   result = result.replace(emailPattern, (email) => {
     return `<a href="mailto:${email}" style="color: #667eea; text-decoration: underline;">${email}</a>`;
+  });
+  
+  // Replace plain domains with clickable links
+  result = result.replace(domainPattern, (domain) => {
+    // Skip if it's already been processed as a URL or email
+    if (domain.includes('://') || domain.includes('@')) {
+      return domain;
+    }
+    return `<a href="https://${domain}" target="_blank" rel="noopener noreferrer" style="color: #667eea; text-decoration: underline;">${domain}</a>`;
   });
   
   return result;
