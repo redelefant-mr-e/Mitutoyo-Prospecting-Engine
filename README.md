@@ -40,14 +40,23 @@ A modern, responsive web application for viewing and analyzing CSV files with in
 
 ### Option 2: Deploy to GitHub Pages
 
+**Quick Deployment:**
+```bash
+./deploy.sh
+```
+
+**Manual Deployment:**
 1. **Build the project**
    ```bash
    npm run build
    ```
 
-2. **Deploy to GitHub Pages** (or any static hosting service)
-   - The built files will be in the `dist/` folder
-   - Upload the contents to your hosting provider
+2. **Deploy to GitHub Pages**
+   ```bash
+   npm run deploy
+   ```
+
+**Note:** The deployment script automatically handles the homepage configuration for GitHub Pages. For local development, the homepage field is removed to ensure files are served from the local server.
 
 ### Option 3: Use as a Desktop App
 
@@ -119,19 +128,19 @@ The application automatically analyzes your CSV data to:
 
 ## 📊 Sample Data
 
-Two sample CSV files are included to demonstrate the application's capabilities:
+The application includes several sample CSV files in the `public/data/` directory that are automatically loaded when you start the app:
 
-**sample-data.csv** contains:
-- Regular text data (names, emails)
-- JSON metadata with company information and skills
-- JSON preferences with user settings
+- **All Companies Denmark.csv** - Danish company data
+- **All Companies.csv** - Complete company database
+- **Companies - Medium, High, or Perfect Match.csv** - Filtered company matches
+- **Enrich Contact Data - Medium, High, or Perfect Match.csv** - Contact enrichment data
+- **Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv** - Danish contact data
+
+These files demonstrate the application's capabilities with:
+- Regular text data (names, emails, company information)
+- JSON metadata with company details and skills
 - Various data types (numbers, dates, booleans)
-
-**sample-data-2.csv** contains:
-- Product catalog data (product names, categories, prices)
-- JSON specifications with technical details
-- Inventory and date information
-- Different data structure to showcase multi-file functionality
+- Large datasets for performance testing
 
 ## 🛠️ Technical Details
 

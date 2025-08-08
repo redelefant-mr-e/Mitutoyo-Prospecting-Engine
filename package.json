@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "A modern CSV viewer for Clay data with JSON support and intelligent data analysis",
   "main": "electron.js",
-  "homepage": "https://redelefant-mr-e.github.io/Mitutoyo-Prospecting-Engine",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
