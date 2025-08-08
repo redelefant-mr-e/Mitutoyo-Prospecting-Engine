@@ -224,6 +224,22 @@ function App() {
     ));
   };
 
+  const handleTabReorder = (draggedFileId, targetFileId) => {
+    setFiles(prev => {
+      const fileIds = prev.map(f => f.id);
+      const draggedIndex = fileIds.indexOf(draggedFileId);
+      const targetIndex = fileIds.indexOf(targetFileId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return prev;
+      
+      const newFiles = [...prev];
+      const [draggedFile] = newFiles.splice(draggedIndex, 1);
+      newFiles.splice(targetIndex, 0, draggedFile);
+      
+      return newFiles;
+    });
+  };
+
   const handleToggleColumn = (column) => {
     if (!activeFileId) return;
     
@@ -529,6 +545,7 @@ function App() {
               onTabChange={handleTabChange}
               onTabClose={handleTabClose}
               onTabRename={handleTabRename}
+              onTabReorder={handleTabReorder}
             />
 
             {activeFileId && (
