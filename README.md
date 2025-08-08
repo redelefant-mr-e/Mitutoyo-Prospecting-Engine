@@ -15,8 +15,15 @@ A modern, responsive web application for viewing and analyzing CSV files with in
 - **Export Functionality**: Download processed data as CSV
 - **Modern UI**: Clean, minimalistic design with harmonized orange theme
 - **No Backend Required**: Runs entirely in the browser - no server needed
+- **Live Demo**: Available on GitHub Pages with sample data
 
 ## 🚀 Quick Start
+
+### Option 0: Try the Live Demo
+
+🌐 **Live Demo**: [https://redelefant-mr-e.github.io/Mitutoyo-Prospecting-Engine/](https://redelefant-mr-e.github.io/Mitutoyo-Prospecting-Engine/)
+
+The live demo includes sample CSV files that demonstrate all the features of the application.
 
 ### Option 1: Run Locally (Recommended)
 
@@ -57,6 +64,12 @@ A modern, responsive web application for viewing and analyzing CSV files with in
    ```
 
 **Note:** The deployment script automatically handles the homepage configuration for GitHub Pages. For local development, the homepage field is removed to ensure files are served from the local server.
+
+**Check Deployment Status:**
+```bash
+node check-deployment.js
+```
+This script will verify that both the main page and all data files are accessible on GitHub Pages.
 
 ### Option 3: Use as a Desktop App
 
