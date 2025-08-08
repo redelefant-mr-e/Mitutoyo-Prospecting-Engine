@@ -86,9 +86,13 @@ dist
 
 # Gatsby files
 .cache/
+
+# Public directory (but allow data files)
 public
+!public/
 !public/data/
 !public/data/*.csv
+!public/data/*.json
 
 # Storybook build outputs
 .out

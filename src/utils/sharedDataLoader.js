@@ -8,8 +8,8 @@ const getBaseUrl = () => {
   if (window.location.hostname === 'redelefant-mr-e.github.io') {
     return '/Mitutoyo-Prospecting-Engine';
   }
-  // Local development
-  return '';
+  // Local development - use the public directory
+  return '/data';
 };
 
 // Function to discover CSV files dynamically
