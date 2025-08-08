@@ -1,14 +1,14 @@
 {
   "tabOrder": [
-    "shared-All Companies Denmark-All Companies Denmark.csv",
     "shared-All Companies-All Companies.csv",
+    "shared-All Companies Denmark-All Companies Denmark.csv",
+    "shared-Find (all) People.csv",
     "shared-Enrich Contact Data - Medium, High, or Perfect Match.csv",
     "shared-Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv",
-    "shared-Find (all) People.csv"
   ],
   "tabNames": {
-    "shared-All Companies Denmark-All Companies Denmark.csv": "Denmark Companies",
-    "shared-All Companies-All Companies.csv": "All Companies",
+    "shared-All Companies Denmark.csv": "Denmark Companies",
+    "shared-All Companies.csv": "All Companies",
     "shared-Enrich Contact Data - Medium, High, or Perfect Match.csv": "Enriched Contacts",
     "shared-Enrich Contact Data Denmark - Medium, High, or Perfect Match.csv": "Denmark Enriched",
     "shared-Find (all) People.csv": "All People"
