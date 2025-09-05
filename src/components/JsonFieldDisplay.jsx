@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ExternalLink, ChevronDown, ChevronRight, Link, FileText, Hash, Globe, Calendar, User, Tag, MessageSquare } from 'lucide-react';
 import { safeJsonParse } from '../utils/csvAnalyzer';
+import { renderCellWithLinks } from '../utils/linkDetector';
 
 const JsonFieldDisplay = ({ jsonData, columnName }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -78,15 +79,17 @@ const JsonFieldDisplay = ({ jsonData, columnName }) => {
           </div>
         );
       }
-      return (
-        <span style={{ 
-          fontSize: 'var(--text-sm)',
-          wordBreak: 'break-word',
-          overflowWrap: 'break-word'
-        }}>
-          {value}
-        </span>
-      );
+      // For other strings, use the same link rendering used in table cells (handles emails/domains)
+      const processed = renderCellWithLinks(value);
+      if (typeof processed === 'object' && processed.__html) {
+        return (
+          <span
+            style={{ fontSize: 'var(--text-sm)', wordBreak: 'break-word', overflowWrap: 'break-word' }}
+            dangerouslySetInnerHTML={processed}
+          />
+        );
+      }
+      return <span style={{ fontSize: 'var(--text-sm)', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{processed}</span>;
     }
     
     if (typeof value === 'number') {
