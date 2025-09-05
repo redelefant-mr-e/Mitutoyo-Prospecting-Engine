@@ -17,14 +17,16 @@ export const detectLinks = (text) => {
   // 1) Sanitize broken/embedded HTML so we don't display raw attributes or stray characters
   let sanitized = text
     .replace(/<[^>]*>/g, '')
-    // If HTML indicators are present, drop attribute pairs entirely
-    .replace(containsHtmlIndicators ? /\b(href|style|class|target|rel|id|name|title|onclick|on\w+)\s*=\s*(".*?"|'[^']*'|[^\s>]+)/gi : /$^/, '')
+    // Remove patterns like "domain.com">email@domain.com" - keep only the email part
+    .replace(/\b[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.([a-zA-Z]{2,})["']\s*>\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '$3')
     // Remove any token immediately followed by quote+angle e.g., domain.com"> or path/"> remnants
     .replace(/[^\s"'>]+["']\s*>/g, '')
     .replace(/[^\s"'>]+["']>/g, '')
     // Remove orphaned quote+greater-than remnants (with or without space)
     .replace(/["']\s*>/g, '')
     .replace(/["']>/g, '')
+    // If HTML indicators are present, drop attribute pairs entirely
+    .replace(containsHtmlIndicators ? /\b(href|style|class|target|rel|id|name|title|onclick|on\w+)\s*=\s*(".*?"|'[^']*'|[^\s>]+)/gi : /$^/, '')
     // If HTML indicators were present, also remove standalone quotes
     .replace(containsHtmlIndicators ? /["']/g : /$^/, '')
     // Remove common detached attribute tokens
