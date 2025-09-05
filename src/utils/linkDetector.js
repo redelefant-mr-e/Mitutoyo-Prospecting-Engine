@@ -30,6 +30,32 @@ export const detectLinks = (text) => {
     // Collapse extra whitespace
     .replace(/\s{2,}/g, ' ')
     .trim();
+
+  // 2) Collapse duplicate domain + full URL sequences (e.g., "www.example.com https://www.example.com")
+  const isHttpUrl = (value) => /^https?:\/\//i.test(value);
+  const isBareDomainOrPath = (value) => /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?:\/[\w\-./?%&=]*)?$/i.test(value);
+  const canonicalize = (value) => value.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+
+  if (sanitized.includes('http') || sanitized.includes('www.')) {
+    const tokens = sanitized.split(/\s+/);
+    const deduplicatedTokens = [];
+    for (let index = 0; index < tokens.length; index += 1) {
+      const token = tokens[index];
+      const nextToken = tokens[index + 1];
+      const tokenLooksLikeDomain = isBareDomainOrPath(token) && !isHttpUrl(token);
+      const nextLooksLikeHttpUrl = typeof nextToken === 'string' && isHttpUrl(nextToken);
+      if (tokenLooksLikeDomain && nextLooksLikeHttpUrl) {
+        const tokenCanonical = canonicalize(token);
+        const nextCanonical = canonicalize(nextToken);
+        if (tokenCanonical === nextCanonical) {
+          // Skip the bare domain, keep the canonical HTTP(S) URL
+          continue;
+        }
+      }
+      deduplicatedTokens.push(token);
+    }
+    sanitized = deduplicatedTokens.join(' ');
+  }
   
   let result = sanitized;
   
