@@ -11,16 +11,17 @@ export const detectLinks = (text) => {
   const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
   // Domain pattern (without http/https)
   const domainPattern = /\b([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b/g;
-  // Detect if the text appears to contain HTML/attribute fragments
-  const containsHtmlIndicators = /<[^>]*>|\bhref\s*=|\btarget\s*=|\brel\s*=|\bstyle\s*=|\bclass\s*=/i.test(text);
+  // Detect if the text appears to contain HTML/attribute fragments or stray quote+angle remnants
+  const containsHtmlIndicators = /<[^>]*>|\bhref\s*=|\btarget\s*=|\brel\s*=|\bstyle\s*=|\bclass\s*=|["']\s*>|["']>/i.test(text);
   
   // 1) Sanitize broken/embedded HTML so we don't display raw attributes or stray characters
   let sanitized = text
     .replace(/<[^>]*>/g, '')
     // If HTML indicators are present, drop attribute pairs entirely
     .replace(containsHtmlIndicators ? /\b(href|style|class|target|rel|id|name|title|onclick|on\w+)\s*=\s*(".*?"|'[^']*'|[^\s>]+)/gi : /$^/, '')
-    // Remove orphaned quote+greater-than remnants
+    // Remove orphaned quote+greater-than remnants (with or without space)
     .replace(/["']\s*>/g, '')
+    .replace(/["']>/g, '')
     // If HTML indicators were present, also remove standalone quotes
     .replace(containsHtmlIndicators ? /["']/g : /$^/, '')
     // Remove common detached attribute tokens
