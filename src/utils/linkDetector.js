@@ -6,13 +6,25 @@ export const detectLinks = (text) => {
   if (typeof text !== 'string') return text;
   
   // URL regex pattern (with http/https)
-  const urlPattern = /(https?:\/\/[^\s]+)/g;
+  const urlPattern = /(https?:\/\/[^\s"'>]+)/g;
   // Email regex pattern
   const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
   // Domain pattern (without http/https)
   const domainPattern = /\b([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b/g;
   
-  let result = text;
+  // 1) Sanitize broken/embedded HTML so we don't display raw attributes like style="..." or stray ">"
+  let sanitized = text
+    // Remove full HTML tags (we will re-linkify clean text)
+    .replace(/<[^>]*>/g, '')
+    // Unwrap common attribute fragments by keeping only the value
+    .replace(/\b(href|style|class|target|rel)\s*=\s*"([^"]*)"/gi, '$2')
+    // Remove orphaned '" >' or "'>" sequences left from stripped tags
+    .replace(/["']\s*>/g, '')
+    // Collapse extra whitespace
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  
+  let result = sanitized;
   
   // Replace URLs with clickable links
   result = result.replace(urlPattern, (url) => {
@@ -42,11 +54,6 @@ export const renderCellWithLinks = (value) => {
   const processedText = detectLinks(value);
   
   if (processedText === value) {
-    // If the string already contains HTML anchor markup, render it as HTML
-    const looksLikeAnchorHtml = /<a\s+[^>]*href=|<a\s?>|mailto:|href=/.test(value);
-    if (looksLikeAnchorHtml) {
-      return { __html: value };
-    }
     return value; // No links detected or HTML present, return as plain text
   }
   
