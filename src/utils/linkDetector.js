@@ -19,6 +19,9 @@ export const detectLinks = (text) => {
     .replace(/<[^>]*>/g, '')
     // If HTML indicators are present, drop attribute pairs entirely
     .replace(containsHtmlIndicators ? /\b(href|style|class|target|rel|id|name|title|onclick|on\w+)\s*=\s*(".*?"|'[^']*'|[^\s>]+)/gi : /$^/, '')
+    // Remove any token immediately followed by quote+angle e.g., domain.com"> or path/"> remnants
+    .replace(/[^\s"'>]+["']\s*>/g, '')
+    .replace(/[^\s"'>]+["']>/g, '')
     // Remove orphaned quote+greater-than remnants (with or without space)
     .replace(/["']\s*>/g, '')
     .replace(/["']>/g, '')
